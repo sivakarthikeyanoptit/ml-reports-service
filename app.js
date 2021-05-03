@@ -1,12 +1,9 @@
 require("dotenv").config();
-var createError = require('http-errors');
 var express = require('express');
 var path = require('path');
 var cookieParser = require('cookie-parser');
-var logger = require('morgan');
 require('./config/globals')();
 var router = require('./routes');
-const cors = require('cors');
 
 var app = express();
 
@@ -21,13 +18,10 @@ if (!environmentData.success) {
   process.exit();
 }
 
-var debug = require('debug')('nodejs-druid-query-app:server');
 var http = require('http');
 var bodyParser = require('body-parser');
 var fs = require('fs');
 
-app.use(cors());
-app.use(logger('dev'));
 //app.use(express.json());
 //app.use(express.urlencoded({ extended: false }));
 app.use(bodyParser.json({ limit: '50mb' }));
@@ -46,35 +40,33 @@ app.use(function (req, res, next) { //allow cross origin requests
 });
 
 
-
-//API documentation (apidoc)
-if (process.env.NODE_ENV == "development" || process.env.NODE_ENV == "local") {
-  app.use(express.static("apidoc"));
-  if (process.env.NODE_ENV == "local") {
-    app.get(process.env.APIDOC_URL, (req, res) => {
-      let apidocPath = process.env.APIDOC_PATH + "/index.html";
-
-      res.sendFile(path.join(__dirname, apidocPath));
-    });
-  } else {
-    app.get(process.env.APIDOC_URL, (req, res) => {
-      let urlArray = req.path.split("/");
-      urlArray.splice(0, 3);
-      let apidocPath = process.env.APIDOC_PATH + urlArray.join("/");
-
-      res.sendFile(path.join(__dirname, apidocPath));
-    });
-  }
-}
-
-
 /**
  * Get port from environment and store in Express.
  */
 
-var port = normalizePort(process.env.PORT || process.env.APPLICATION_PORT_NUMBER);
+var port = normalizePort(process.env.PORT || process.env.APPLICATION_PORT);
 app.set('port', port);
 router(app);
+
+
+app.all("*", (req, res, next) => {
+
+    console.log("-------Request log starts here------------------");
+    console.log(
+      "%s %s on %s from ",
+      req.method,
+      req.url,
+      new Date(),
+      req.headers["user-agent"]
+    );
+    console.log("Request Headers: ", req.headers);
+    console.log("Request Body: ", req.body);
+    console.log("Request Files: ", req.files);
+    console.log("-------Request log ends here------------------");
+  
+  
+  next();
+});
 
 /**
  * Create HTTP server.
@@ -154,7 +146,7 @@ function onListening() {
   var bind = typeof addr === 'string'
     ? 'pipe ' + addr
     : 'port ' + addr.port;
-  debug('Listening on ' + bind);
+  
 }
 
 let dir = './tmp';
